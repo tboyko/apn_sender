@@ -39,6 +39,8 @@ where +token+ is the unique identifier of the iPhone to receive the notification
 
 If any other keys are present they'll be be passed along as custom data to your application.
 
+You can also provide +opts_hash+ a hash with a singular +:push_magic+ key set to the push magic value for the device. This will produce an MDM notification and send it to the device.
+ 
 === 2. Sending Queued Messages
 
 Put your <code>apn_development.pem</code> and <code>apn_production.pem</code> certificates from Apple in your <code>RAILS_ROOT/config/certs</code> directory.
