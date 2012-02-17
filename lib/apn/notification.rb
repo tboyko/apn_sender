@@ -35,9 +35,11 @@ module APN
       packaged_notification
     end
     
-    # Ensures at least one of <code>%w(alert badge sound)</code> is present
+    # Ensures at least one of <code>%w(alert badge sound)</code> is present or, in the case of
+    # an MDM notification, <code>push_magic</code> has been specified.
     def valid?
       return true if %w(alert badge sound).any?{|key| options.keys.include?(key.to_sym) }
+      return true if options[:push_magic] && options.size == 1
       false
     end
     
@@ -57,19 +59,21 @@ module APN
 
     # Converts the supplied options into the JSON needed for Apple's push notification servers.
     # Extracts :alert, :badge, and :sound keys into the 'aps' hash, merges any other hash data
-    # into the root of the hash to encode and send to apple.
+    # into the root of the hash to encode and send to apple. If :push_magic was provided,
+    # builds JSON for an mdm notification.
     def packaged_message
       opts = @options.clone # Don't destroy our pristine copy
-      hsh = {'aps' => {}}
-      if alert = opts.delete(:alert)
-        alert = alert.to_s unless alert.is_a?(Hash)
-        hsh['aps']['alert'] = alert
+      if opts[:push_magic]
+        hsh = {'mdm' => opts[:push_magic]}
+      else
+        hsh = {'aps' => {}}
+        hsh['aps']['alert'] = opts.delete(:alert).to_s if opts[:alert]
+        hsh['aps']['badge'] = opts.delete(:badge).to_i if opts[:badge]
+        if sound = opts.delete(:sound)
+          hsh['aps']['sound'] = sound.is_a?(TrueClass) ? 'default' : sound.to_s
+        end
+        hsh.merge!(opts)
       end
-      hsh['aps']['badge'] = opts.delete(:badge).to_i if opts[:badge]
-      if sound = opts.delete(:sound)
-        hsh['aps']['sound'] = sound.is_a?(TrueClass) ? 'default' : sound.to_s
-      end
-      hsh.merge!(opts)
       ActiveSupport::JSON::encode(hsh)
     end
     
